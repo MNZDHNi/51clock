@@ -4,6 +4,7 @@
 #include "DS1302.h"
 #include "LCD1602.h"
 #include "Timer0.h"
+#include "Timer.h"
 
 unsigned char KeyNum, MODE, TimeSetSelect, TimeSetFlashFlag;  //键值 模式 时间位 时间闪烁标志位
 
@@ -127,9 +128,7 @@ void TimeSet()  //MODE 1 设置时间
 
 void AlarmSet() //MODE 2 设置闹钟
 {
-    //有bug 之后修改，放在主函数if模式切换里
-    //MODE 1 结束后将时间写入DS1302
-    DS1302_SetTime();
+    
 }
 
 void StopWatch()    //MODE 3 秒表
@@ -157,8 +156,19 @@ void main()
         KeyNum = Key();
         if(KeyNum == 1)
         {
-            MODE++;
-            MODE %= 4;
+            if(MODE == 0){
+                MODE = 1;
+            }
+            else if(MODE == 1){
+                MODE = 2;
+                DS1302_SetTime();
+            }
+            else if (MODE == 2){
+                MODE = 3;
+            }
+            else if (MODE == 3){
+                MODE = 0;
+            }
         }
         
         switch(MODE)
