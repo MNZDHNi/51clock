@@ -170,6 +170,69 @@ void AlarmSet() //MODE 2 设置闹钟
         if(clock[4] > 59) {clock[4] = 0;}
         if(clock[5] > 59) {clock[5] = 0;}
     }
+    if(KeyNum == 4)
+    {
+        clock[TimeSetSelect]--;       
+
+        //一般边界判断  *** 修改 DS1302_Time 为 clock
+        if(DS1302_Time[0] < 0) {DS1302_Time[0] = 99;}
+        if(DS1302_Time[1] < 1) {DS1302_Time[1] = 12;}
+
+        if(DS1302_Time[1] == 1 || DS1302_Time[1] == 3 || DS1302_Time[1] == 5 || DS1302_Time[1] == 7 ||
+           DS1302_Time[1] == 8 || DS1302_Time[1] == 10 || DS1302_Time[1] == 12)
+        {
+            if(DS1302_Time[2] < 1) {DS1302_Time[2] = 31;}
+            if(DS1302_Time[2] > 31) {DS1302_Time[2] = 1;}
+        }
+        else if(DS1302_Time[1] == 4 || DS1302_Time[1] == 6 || DS1302_Time[1] == 9 || DS1302_Time[1] == 11)
+        {
+            if(DS1302_Time[2] < 1) {DS1302_Time[2] = 30;}
+            if(DS1302_Time[2] > 30) {DS1302_Time[2] = 1;}
+        }
+        else if(DS1302_Time[1] == 2)
+        {
+            if(DS1302_Time[0] % 4 == 0)
+            {
+                if(DS1302_Time[2] < 1) {DS1302_Time[2] = 29;}
+                if(DS1302_Time[2] > 29) {DS1302_Time[2] = 1;}
+            }
+            else
+            {
+                if(DS1302_Time[2] < 1) {DS1302_Time[2] = 28;}
+                if(DS1302_Time[2] > 28) {DS1302_Time[2] = 1;}
+            }
+        }
+
+        if(DS1302_Time[3] < 0) {DS1302_Time[3] = 23;}
+        if(DS1302_Time[4] < 0) {DS1302_Time[4] = 59;}
+        if(DS1302_Time[5] < 0) {DS1302_Time[5] = 59;} 
+    
+
+        //闹钟时间边界判断
+        if(clock[0] < DS1302_Time[0])
+        {clock[0] = DS1302_Time[0];}
+
+        if(clock[0] == DS1302_Time[0] && clock[1] < DS1302_Time[1])
+        {clock[1] = DS1302_Time[1];}
+
+        if(clock[0] == DS1302_Time[0] && clock[1] == DS1302_Time[1] &&
+           clock[2] < DS1302_Time[2])
+        {clock[2] = DS1302_Time[2];}
+
+        if(clock[0] == DS1302_Time[0] && clock[1] == DS1302_Time[1] &&
+           clock[2] == DS1302_Time[2] && clock[3] < DS1302_Time[3])
+        {clock[3] = DS1302_Time[3];}
+
+        if(clock[0] == DS1302_Time[0] && clock[1] == DS1302_Time[1] &&
+           clock[2] == DS1302_Time[2] && clock[3] == DS1302_Time[3] &&
+           clock[4] < DS1302_Time[4])
+        {clock[4] = DS1302_Time[4];}
+
+        if(clock[0] == DS1302_Time[0] && clock[1] == DS1302_Time[1] &&
+           clock[2] == DS1302_Time[2] && clock[3] == DS1302_Time[3] &&
+           clock[4] == DS1302_Time[4] && clock[5] < DS1302_Time[5])
+        {clock[5] = DS1302_Time[5];}
+    }
 
     //闹钟时间实时显示，已写入 clock[]
     if(TimeSetSelect == 0 && TimeSetFlashFlag == 1) {LCD_ShowString(1,1,"  ");}
@@ -237,7 +300,7 @@ void main()
             else if (MODE == 2){
                 MODE = 3;
 
-                //写入 clock[]
+                //不需要写入 clock[] 本来就是在修改 clock[]
             }
             else if (MODE == 3){
                 MODE = 0;
