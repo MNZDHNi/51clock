@@ -13,13 +13,20 @@ unsigned char clock[5]; //年月日 时分秒
 //秒表
 struct StopTime
 {
-    unsigned char StopHour;
-    unsigned char StopMinute;
-    unsigned char StopSecond;
+    unsigned char StopHour;     //时
+    unsigned char StopMinute;   //分
+    unsigned char StopSecond_0; //秒
+    unsigned char StopSecond_1; //十分秒
+    unsigned char StopSecond_2; //百分秒
 };
-struct StopTime NowTime;
-struct StopTime StopTimeArray[10];
-unsigned char StopSecondCount;
+struct StopTime NowTime;            //秒表实时时间
+struct StopTime StopTimeArray[10];  //回看值
+unsigned char StopTimeNum;          //回看值数
+unsigned char StopTimeNumSelect;    //回看值位
+unsigned char StopCount;            //秒表中断计数器
+unsigned char StopWatchFlag;        //秒表显示标记位
+unsigned char StopTimeFlag;         //显示内容(实时/回看)标记位
+unsigned char StopWatchAddFlag;     //秒表累计状态位
 
 /* MODE.JSON
 {
@@ -288,25 +295,120 @@ void StopWatch()    //MODE 3 秒表
 {
     if(KeyNum == 2) //开始计时(清零并重新计时)
     {
-        StopSecondCount = 0;
+        //清空实时时间
+        StopCount = 0;
         NowTime.StopHour = 0;
         NowTime.StopMinute = 0;
-        NowTime.StopSecond = 0;
-    }
-    if(KeyNum == 3) //暂停/继续
-    {
+        NowTime.StopSecond_0 = 0;
+        NowTime.StopSecond_1 = 0;
+        NowTime.StopSecond_2 = 0;
 
-    }
-    if(KeyNum == 4) //回看列表 无记录不回看
-    {
+        //清空 回看记录 值*************************************************回看记录未清除(建议调用函数清除)
+        StopTimeNum = 0;
 
+        //初始化状态
+        StopWatchFlag = 1;
+        StopWatchAddFlag = 1;
+        StopTimeFlag = 0;
+    }
+    if(KeyNum == 3) //暂停/运行
+    {
+        StopWatchAddFlag = !StopWatchAddFlag;
+    }
+    if(KeyNum == 4) //运行/添加回看  暂停/回看列表 无记录不回看
+    {
+        if(StopWatchAddFlag)
+        {
+            if(StopTimeNum < 10)
+            {
+                //写入回看值数组
+                StopTimeArray[StopTimeNum].StopHour = NowTime.StopHour;
+                StopTimeArray[StopTimeNum].StopMinute = NowTime.StopMinute;
+                StopTimeArray[StopTimeNum].StopSecond_0 = NowTime.StopSecond_0;
+                StopTimeArray[StopTimeNum].StopSecond_1 = NowTime.StopSecond_1;
+                StopTimeArray[StopTimeNum].StopSecond_2 = NowTime.StopSecond_2;
+
+                StopTimeNum++;
+            }
+        }
+        else{
+            if(StopTimeNum > 0)
+            {
+                if(StopTimeFlag == 0)   {StopTimeFlag = 1;}
+                else if(StopTimeNumSelect == (StopTimeNum - 1))
+                {
+                    StopTimeNumSelect = 0;
+                    StopTimeFlag = 0;
+                } 
+                else    {StopTimeNumSelect++;}
+            }
+        }
+    }
+    
+    //秒表累积
+    if(StopWatchAddFlag)
+    {
+        //*************************************有bug 应该改为 StopCount 增加然后 NowTime.StopSecond_2 增加
+        NowTime.StopSecond_2 = StopCount;
+
+        if(NowTime.StopSecond_2 == 10)
+        {
+            StopCount = 0;
+            NowTime.StopSecond_2 = 0;
+            NowTime.StopSecond_1++;
+
+            if(NowTime.StopSecond_1 == 10)
+            {
+                NowTime.StopSecond_1 = 0;
+                NowTime.StopSecond_0++;
+
+                if(NowTime.StopSecond_0 == 60)
+                {
+                    NowTime.StopSecond_0 = 0;
+                    NowTime.StopMinute++;
+
+                    if(NowTime.StopMinute == 60)
+                    {
+                        NowTime.StopMinute = 0;
+                        NowTime.StopHour++;
+
+                        if(NowTime.StopHour == 100)
+                        {
+                            //显示超出边界
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    //实时显示 时分秒/10/100
+    if(StopWatchFlag)
+    {
+        if(StopTimeFlag)    //回看显示
+        {
+            LCD_ShowNum(1,1,StopTimeArray[StopTimeNumSelect].StopHour,2);
+            LCD_ShowNum(1,4,StopTimeArray[StopTimeNumSelect].StopMinute,2);
+            LCD_ShowNum(2,1,StopTimeArray[StopTimeNumSelect].StopSecond_0,2);
+            LCD_ShowNum(2,4,StopTimeArray[StopTimeNumSelect].StopSecond_1,1);
+            LCD_ShowNum(2,5,StopTimeArray[StopTimeNumSelect].StopSecond_2,1);
+        }
+        else    //实时显示
+        {
+            LCD_ShowNum(1,1,NowTime.StopHour,2);
+            LCD_ShowNum(1,4,NowTime.StopMinute,2);
+            LCD_ShowNum(2,1,NowTime.StopSecond_0,2);
+            LCD_ShowNum(2,4,NowTime.StopSecond_1,1);
+            LCD_ShowNum(2,5,NowTime.StopSecond_2,1);
+        }
     }
 }
 
 void main()
 {
     //初始化定时器
-    Timer0Init();
+    Timer0_Init();
+    Timer1_Init();
 
     //时钟模块
     DS1302_Init();
@@ -314,8 +416,8 @@ void main()
 
     //LCD模块
     LCD_Init();
-    LCD_ShowString(1,1,"  -  -  ");
-    LCD_ShowString(2,1,"  :  :  ");
+    LCD_ShowString(1,1,"  -  -   MODE");
+    LCD_ShowString(2,1,"  :  :   SHOW");
 
     while(1)
     {
@@ -324,16 +426,24 @@ void main()
         if(KeyNum == 1)
         {
             if(MODE == 0){
-                MODE = 1;
+                MODE = 1;   //进入 TimeSet
+
+                //初始化模式显示
+                LCD_ShowString(1,1,"  -  -   MODE");
+                LCD_ShowString(2,1,"  :  :   SET");
 
                 //初始化时间位
                 TimeSetSelect = 0;
             }
             else if(MODE == 1){
-                MODE = 2;
+                MODE = 2;   //进入 AlarmSet
                 
                 //将新设置的时间写入DS1302
                 DS1302_SetTime();
+
+                //初始化模式显示
+                LCD_ShowString(1,1,"  -  -   MODE");
+                LCD_ShowString(2,1,"  :  :   ALARM");
 
                 //初始化时间位
                 TimeSetSelect = 0;
@@ -347,12 +457,21 @@ void main()
                 clock[5] = DS1302_Time[5];
             }
             else if (MODE == 2){
-                MODE = 3;
+                MODE = 3;   //进入 StopWatch
 
-                //不需要写入 clock[] 本来就是在修改 clock[]
+                //初始化模式显示
+                LCD_ShowString(1,1,"  :      MODE");
+                LCD_ShowString(2,1,"  .      S-W");
             }
             else if (MODE == 3){
-                MODE = 0;
+                MODE = 0;   //进入 TimeShow
+
+                //初始化模式显示
+                LCD_ShowString(1,1,"  -  -   MODE");
+                LCD_ShowString(2,1,"  :  :   SHOW");
+
+                //清零显示标志位
+                StopWatchFlag = 0;
             }
         }
         
@@ -361,26 +480,40 @@ void main()
         {
             case 0: TimeShow(); break;
             case 1: TimeSet();  break;
-            case 2: AlarmSet();   break;
-            case 3: StopWatch();  break;
+            case 2: AlarmSet(); break;
+            case 3: StopWatch();break;
         }
     }
 }
 
-//中断部分 ******************************************************修改
-void Timer0_Routine() //interrupt 1
+//中断部分
+void Timer0_ISR(void) interrupt 1 
 {
     static unsigned int T0Count;
 
-    //设置定时初值
-    TL0 = 0x18;
-    TH0 = 0xFC;
-
+    TH0 = 0xFC;        // 重装初值
+    TL0 = 0x67;
+    // 这里添加1ms定时任务代码
     T0Count++;
     if(T0Count >= 500)
     {
         T0Count = 0;
         //中断内容
         TimeSetFlashFlag = !TimeSetFlashFlag;   //控制时间闪烁
+    }
+}
+
+void Timer1_ISR(void) interrupt 3 
+{
+    static unsigned int T1Count;
+
+    TH1 = 0xFC;        // 重装初值
+    TL1 = 0x67;
+    // 这里添加1ms定时任务代码
+    T1Count++;
+    if(T1Count >= 10)
+    {
+        T1Count = 0;
+        StopCount++;
     }
 }
