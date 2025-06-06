@@ -1,4 +1,4 @@
-#include <REGX52.H>
+//#include <REGX52.H>
 #include "Delay.h"
 #include "Key.h"
 #include "DS1302.h"
@@ -10,6 +10,17 @@ unsigned char KeyNum, MODE, TimeSetSelect, TimeSetFlashFlag;  //键值 模式值
 
 //闹钟值定义
 unsigned char clock[5]; //年月日 时分秒
+
+//秒表
+struct StopTime
+{
+    unsigned char StopHour;
+    unsigned char StopMinute;
+    unsigned char StopSecond;
+};
+struct StopTime NowTime;
+struct StopTime StopTimeArray[10];
+unsigned char StopSecondCount;
 
 /* MODE.JSON
 {
@@ -141,7 +152,7 @@ void AlarmSet() //MODE 2 设置闹钟
     {
         clock[TimeSetSelect]++;
 
-        //输入合法性判断
+        //输入合法性一般判断
         if(clock[0] > 99) {clock[0] = 0;}
         if(clock[1] > 12) {clock[1] = 1;}
 
@@ -169,43 +180,68 @@ void AlarmSet() //MODE 2 设置闹钟
         if(clock[3] > 23) {clock[3] = 0;}
         if(clock[4] > 59) {clock[4] = 0;}
         if(clock[5] > 59) {clock[5] = 0;}
+
+        //闹钟时间边界判断
+        if(clock[0] < DS1302_Time[0])
+        {clock[0] = DS1302_Time[0];}
+
+        if(clock[0] == DS1302_Time[0] && clock[1] < DS1302_Time[1])
+        {clock[1] = DS1302_Time[1];}
+
+        if(clock[0] == DS1302_Time[0] && clock[1] == DS1302_Time[1] &&
+           clock[2] < DS1302_Time[2])
+        {clock[2] = DS1302_Time[2];}
+
+        if(clock[0] == DS1302_Time[0] && clock[1] == DS1302_Time[1] &&
+           clock[2] == DS1302_Time[2] && clock[3] < DS1302_Time[3])
+        {clock[3] = DS1302_Time[3];}
+
+        if(clock[0] == DS1302_Time[0] && clock[1] == DS1302_Time[1] &&
+           clock[2] == DS1302_Time[2] && clock[3] == DS1302_Time[3] &&
+           clock[4] < DS1302_Time[4])
+        {clock[4] = DS1302_Time[4];}
+
+        if(clock[0] == DS1302_Time[0] && clock[1] == DS1302_Time[1] &&
+           clock[2] == DS1302_Time[2] && clock[3] == DS1302_Time[3] &&
+           clock[4] == DS1302_Time[4] && clock[5] < DS1302_Time[5])
+        {clock[5] = DS1302_Time[5];}
     }
     if(KeyNum == 4)
     {
         clock[TimeSetSelect]--;       
 
-        //一般边界判断  *** 修改 DS1302_Time 为 clock
-        if(DS1302_Time[0] < 0) {DS1302_Time[0] = 99;}
-        if(DS1302_Time[1] < 1) {DS1302_Time[1] = 12;}
+        //一般边界判断
+        if(clock[0] < 0) {clock[0] = 99;}
+        if(clock[1] < 1) {clock[1] = 12;}
 
-        if(DS1302_Time[1] == 1 || DS1302_Time[1] == 3 || DS1302_Time[1] == 5 || DS1302_Time[1] == 7 ||
-           DS1302_Time[1] == 8 || DS1302_Time[1] == 10 || DS1302_Time[1] == 12)
+        if(clock[1] == 1 || clock[1] == 3 || clock[1] == 5 || clock[1] == 7 ||
+           clock[1] == 8 || clock[1] == 10 || clock[1] == 12)
         {
-            if(DS1302_Time[2] < 1) {DS1302_Time[2] = 31;}
-            if(DS1302_Time[2] > 31) {DS1302_Time[2] = 1;}
+            if(clock[2] < 1) {clock[2] = 31;}
+            if(clock[2] > 31) {clock[2] = 1;}
         }
-        else if(DS1302_Time[1] == 4 || DS1302_Time[1] == 6 || DS1302_Time[1] == 9 || DS1302_Time[1] == 11)
+        else if(clock[1] == 4 || clock[1] == 6 || clock[1] == 9 || clock[1] == 11)
         {
-            if(DS1302_Time[2] < 1) {DS1302_Time[2] = 30;}
-            if(DS1302_Time[2] > 30) {DS1302_Time[2] = 1;}
+            if(clock[2] < 1) {clock[2] = 30;}
+            if(clock[2] > 30) {clock[2] = 1;}
         }
-        else if(DS1302_Time[1] == 2)
+        else if(clock[1] == 2)
         {
-            if(DS1302_Time[0] % 4 == 0)
+            if(clock[0] % 4 == 0)
             {
-                if(DS1302_Time[2] < 1) {DS1302_Time[2] = 29;}
-                if(DS1302_Time[2] > 29) {DS1302_Time[2] = 1;}
+                if(clock[2] < 1) {clock[2] = 29;}
+                if(clock[2] > 29) {clock[2] = 1;}
             }
             else
             {
-                if(DS1302_Time[2] < 1) {DS1302_Time[2] = 28;}
-                if(DS1302_Time[2] > 28) {DS1302_Time[2] = 1;}
+                if(clock[2] < 1) {clock[2] = 28;}
+                if(clock[2] > 28) {clock[2] = 1;}
             }
         }
 
-        if(DS1302_Time[3] < 0) {DS1302_Time[3] = 23;}
-        if(DS1302_Time[4] < 0) {DS1302_Time[4] = 59;}
-        if(DS1302_Time[5] < 0) {DS1302_Time[5] = 59;} 
+        if(clock[3] < 0) {clock[3] = 23;}
+        if(clock[4] < 0) {clock[4] = 59;}
+        if(clock[5] < 0) {clock[5] = 59;} 
     
 
         //闹钟时间边界判断
@@ -251,7 +287,21 @@ void AlarmSet() //MODE 2 设置闹钟
 
 void StopWatch()    //MODE 3 秒表
 {
-    
+    if(KeyNum == 2) //开始计时(清零并重新计时)
+    {
+        StopSecondCount = 0;
+        NowTime.StopHour = 0;
+        NowTime.StopMinute = 0;
+        NowTime.StopSecond = 0;
+    }
+    if(KeyNum == 3) //暂停/继续
+    {
+
+    }
+    if(KeyNum == 4) //回看列表 无记录不回看
+    {
+
+    }
 }
 
 void main()
@@ -312,8 +362,8 @@ void main()
         {
             case 0: TimeShow(); break;
             case 1: TimeSet();  break;
-            case 2: AlarmSet;   break;
-            case 3: break;
+            case 2: AlarmSet();   break;
+            case 3: StopWatch();  break;
         }
     }
 }

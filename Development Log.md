@@ -5,24 +5,25 @@
 - [x] 完成 AlarmSet 主体部分
 
 ---
-
 ## 6/6
 - [ ] 完成蜂鸣器的部分
 - [ ] 调试中断和计时器(T0/T1/T2)
 - [ ] 添加当前模式显示
+- [x] 闹钟模式
+- [ ] 秒表模式
 
----
-
-考虑AlarmSet 是否需要定时器  
-将 AlarmSet 添加 减 功能，增加边界判断，`clock[] >= DS1302_Time[]` ？  
-使用 DS1302 时间完成 StopWatch ?  
-使用中断功能 完成
-
----
 ### Alarmset
-添加蜂鸣器触发条件判断 写入 `while(1)` 中，与 `KeyNum` 共同判断
+添加蜂鸣器触发条件判断 写入 `while(1)` 中，与 `KeyNum` 共同判断  
+将 AlarmSet 添加 减 功能，增加边界判断，`clock[] >= DS1302_Time[]` ?  
+考虑AlarmSet 是否需要定时器  
 
----
 ### StopWatch
 通过定时器累计时间  
-新建 结构体数组 存储 回看的时间
+新建 结构体数组 存储 回看的时间  
+使用 DS1302 时间完成 StopWatch ?  
+使用中断功能 完成  
+
+### 当前模式显示
+格式设计  
+> MODE
+> READ SET ALARM STOP
