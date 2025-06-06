@@ -3,8 +3,7 @@
 #include "Key.h"
 #include "DS1302.h"
 #include "LCD1602.h"
-#include "Timer0.h"
-#include "Timer.h"
+#include "Time.h"
 
 unsigned char KeyNum, MODE, TimeSetSelect, TimeSetFlashFlag;  //键值 模式值 时间位 时间闪烁标志位
 
@@ -368,7 +367,7 @@ void main()
     }
 }
 
-//中断部分
+//中断部分 ******************************************************修改
 void Timer0_Routine() //interrupt 1
 {
     static unsigned int T0Count;
