@@ -1,4 +1,4 @@
-//#include <REGX52.H>
+#include <REGX52.H>
 #include "Delay.h"
 #include "Key.h"
 #include "DS1302.h"
