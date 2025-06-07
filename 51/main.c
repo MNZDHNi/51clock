@@ -40,6 +40,9 @@ unsigned char StopWatchAddFlag;     //秒表累计状态位
 }
 */
 
+//函数声明部分
+void ClearStopNum();
+
 void TimeShow() //MODE 0 显示时间
 {
     DS1302_ReadTime();
@@ -296,20 +299,19 @@ void StopWatch()    //MODE 3 秒表
     if(KeyNum == 2) //开始计时(清零并重新计时)
     {
         //清空实时时间
-        StopCount = 0;
         NowTime.StopHour = 0;
         NowTime.StopMinute = 0;
         NowTime.StopSecond_0 = 0;
         NowTime.StopSecond_1 = 0;
         NowTime.StopSecond_2 = 0;
 
-        //清空 回看记录 值*************************************************回看记录未清除(建议调用函数清除)
-        StopTimeNum = 0;
+        //清空 回看记录 回看值 回看选择位
+        ClearStopNum();
 
         //初始化状态
         StopWatchFlag = 1;
-        StopWatchAddFlag = 1;
         StopTimeFlag = 0;
+        StopWatchAddFlag = 1;
     }
     if(KeyNum == 3) //暂停/运行
     {
@@ -344,17 +346,19 @@ void StopWatch()    //MODE 3 秒表
             }
         }
     }
+    //进入累积前，清空StopCount
+    if(!StopWatchAddFlag)
+    {StopCount = 0;}
     
     //秒表累积
     if(StopWatchAddFlag)
     {
-        //*************************************有bug 应该改为 StopCount 增加然后 NowTime.StopSecond_2 增加
-        NowTime.StopSecond_2 = StopCount;
+        NowTime.StopSecond_2 += StopCount;
+        StopCount = 0;
 
-        if(NowTime.StopSecond_2 == 10)
+        if(NowTime.StopSecond_2 > 9)
         {
-            StopCount = 0;
-            NowTime.StopSecond_2 = 0;
+            NowTime.StopSecond_2 = (NowTime.StopSecond_2 - 10);
             NowTime.StopSecond_1++;
 
             if(NowTime.StopSecond_1 == 10)
@@ -392,6 +396,10 @@ void StopWatch()    //MODE 3 秒表
             LCD_ShowNum(2,1,StopTimeArray[StopTimeNumSelect].StopSecond_0,2);
             LCD_ShowNum(2,4,StopTimeArray[StopTimeNumSelect].StopSecond_1,1);
             LCD_ShowNum(2,5,StopTimeArray[StopTimeNumSelect].StopSecond_2,1);
+
+            //显示回看选择位
+            LCD_ShowString(2,7,"T");
+            LCD_ShowNum(2,8,StopTimeNumSelect,1);
         }
         else    //实时显示
         {
@@ -400,6 +408,9 @@ void StopWatch()    //MODE 3 秒表
             LCD_ShowNum(2,1,NowTime.StopSecond_0,2);
             LCD_ShowNum(2,4,NowTime.StopSecond_1,1);
             LCD_ShowNum(2,5,NowTime.StopSecond_2,1);
+
+            //清空回看选择位
+            LCD_ShowString(2,7,"  ");
         }
     }
 }
@@ -410,11 +421,11 @@ void main()
     Timer0_Init();
     Timer1_Init();
 
-    //时钟模块
+    //初始化时钟模块
     DS1302_Init();
     DS1302_SetTime();
 
-    //LCD模块
+    //初始化LCD模块
     LCD_Init();
     LCD_ShowString(1,1,"  -  -   MODE");
     LCD_ShowString(2,1,"  :  :   SHOW");
@@ -470,7 +481,7 @@ void main()
                 LCD_ShowString(1,1,"  -  -   MODE");
                 LCD_ShowString(2,1,"  :  :   SHOW");
 
-                //清零显示标志位
+                //清零秒表模式
                 StopWatchFlag = 0;
             }
         }
@@ -515,5 +526,21 @@ void Timer1_ISR(void) interrupt 3
     {
         T1Count = 0;
         StopCount++;
+    }
+}
+
+//函数定义部分
+void ClearStopNum()
+{
+    StopTimeNum = 0;
+    StopTimeNumSelect = 0;
+
+    for(char i = 0; i < 10; i++)
+    {
+        StopTimeArray[i].StopHour = 0;
+        StopTimeArray[i].StopMinute = 0;
+        StopTimeArray[i].StopSecond_0 = 0;
+        StopTimeArray[i].StopSecond_1 = 0;
+        StopTimeArray[i].StopSecond_2 = 0;
     }
 }
